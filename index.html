@@ -71,20 +71,23 @@
         tg.ready();
         tg.expand();
 
-        // 2. Инициализация Supabase (ваши ключи)
+        // 2. Инициализация Supabase (ПРОВЕРЬТЕ URL и КЛЮЧ!)
         const supabaseUrl = 'https://uycdmmsocowesgppjswf.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // ВСТАВЬТЕ НИЖЕ ВАШ КЛЮЧ (тот, что начинается на eyJ...)
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk'; 
+        
+        // Создаем клиент Supabase
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-                // 3. Функция загрузки задач из базы
+        // 3. Загрузка задач из базы
         async function loadTasks() {
-            const { data: tasks, error } = await supabase
+            const { data: tasks, error } = await supabaseClient
                 .from('tasks')
                 .select('*')
                 .order('created_at', { ascending: false });
 
             const list = document.getElementById('task-list');
-            list.innerHTML = ''; // Очищаем список
+            list.innerHTML = ''; 
 
             if (error) {
                 list.innerHTML = `<li>Ошибка загрузки: ${error.message}</li>`;
@@ -103,27 +106,25 @@
             });
         }
 
-        // 4. Функция добавления новой задачи
+        // 4. Добавление задачи
         async function addTask() {
             const input = document.getElementById('task-input');
             const title = input.value.trim();
+            if (!title) return; 
 
-            if (!title) return; // Если поле пустое - ничего не делаем
-
-            // Сохраняем в базу
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('tasks')
                 .insert([{ title: title }]);
 
             if (!error) {
-                input.value = ''; // Очищаем поле ввода
-                loadTasks(); // Обновляем список на экране
+                input.value = ''; 
+                loadTasks(); 
             } else {
                 alert('Ошибка при добавлении: ' + error.message);
             }
         }
 
-        // При запуске приложения сразу загружаем задачи
+        // Запускаем при старте
         loadTasks();
     </script>
 </body>
