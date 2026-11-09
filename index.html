@@ -15,47 +15,73 @@
             padding: 20px;
             box-sizing: border-box;
         }
-        h2 { margin-top: 0; }
-        .add-task { display: flex; gap: 10px; margin-bottom: 20px; }
-        input[type="text"] {
+        /* Стили для вкладок */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn {
+            flex: 1; padding: 10px; border-radius: 8px; border: none;
+            background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            color: var(--tg-theme-text-color, #000);
+            font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .tab-btn.active {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .add-form { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input {
             flex-grow: 1; padding: 12px; border-radius: 8px;
             border: 1px solid var(--tg-theme-hint-color, #ccc); font-size: 16px;
         }
+        input[type="number"] { max-width: 120px; }
         button.add-btn {
             padding: 12px 20px; border-radius: 8px; border: none;
             background-color: var(--tg-theme-button-color, #2481cc);
             color: var(--tg-theme-button-text-color, #ffffff);
             font-size: 16px; font-weight: bold; cursor: pointer;
         }
+        
         ul { list-style: none; padding: 0; }
         li {
             padding: 15px; background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
             border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
         }
         .task-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
-        .task-text { font-size: 16px; }
         .done { text-decoration: line-through; opacity: 0.6; }
-        
-        /* Стили для чекбокса */
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #ff4d4d; }
         
-        /* Стили для кнопки удаления */
-        .delete-btn {
-            background: none; border: none; font-size: 18px; cursor: pointer; 
-            color: #ff4d4d; padding: 5px; opacity: 0.7;
-        }
-        .delete-btn:hover { opacity: 1; }
+        /* Стили для бюджета */
+        .budget-total { font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .transaction-amount { font-weight: bold; color: #ff4d4d; }
     </style>
 </head>
 <body>
-    <h2>Наши дела</h2>
-    <div class="add-task">
-        <input type="text" id="task-input" placeholder="Что нужно сделать?">
-        <button class="add-btn" onclick="addTask()">Добавить</button>
+    <!-- Вкладки -->
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-tasks" onclick="switchTab('tasks')">Дела</button>
+        <button class="tab-btn" id="tab-budget" onclick="switchTab('budget')">Бюджет</button>
     </div>
-    <ul id="task-list">
-        <li>Загрузка задач...</li>
-    </ul>
+
+    <!-- РАЗДЕЛ: ДЕЛА -->
+    <div id="tasks-view">
+        <div class="add-form">
+            <input type="text" id="task-input" placeholder="Что нужно сделать?">
+            <button class="add-btn" onclick="addTask()">Добавить</button>
+        </div>
+        <ul id="task-list"><li>Загрузка...</li></ul>
+    </div>
+
+    <!-- РАЗДЕЛ: БЮДЖЕТ (Скрыт по умолчанию) -->
+    <div id="budget-view" style="display: none;">
+        <div class="budget-total">Расходы: <span id="total-amount">0</span> ₽</div>
+        <div class="add-form">
+            <input type="text" id="trans-desc" placeholder="На что? (напр. Продукты)">
+            <input type="number" id="trans-amount" placeholder="Сумма">
+            <button class="add-btn" onclick="addTransaction()">+</button>
+        </div>
+        <ul id="transaction-list"><li>Загрузка...</li></ul>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -64,57 +90,46 @@
 
         // --- НАСТРОЙКИ SUPABASE ---
         const supabaseUrl = 'https://uycdmmsocewesgppjswf.supabase.co';
-        // ВАШ КЛЮЧ (ОН УЖЕ ВСТАВЛЕН, НО МОЖЕТЕ ПРОВЕРИТЬ)
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk'; 
-        
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk'; // <--- ВСТАВЬТЕ ВАШ КЛЮЧ eyJ...
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-        // --------------------------
 
+        // 1. Логика переключения вкладок
+        function switchTab(tabName) {
+            document.getElementById('tasks-view').style.display = 'none';
+            document.getElementById('budget-view').style.display = 'none';
+            document.getElementById('tab-tasks').classList.remove('active');
+            document.getElementById('tab-budget').classList.remove('active');
+
+            document.getElementById(tabName + '-view').style.display = 'block';
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // --- ЛОГИКА ДЕЛ (из прошлого шага) ---
         async function loadTasks() {
-            const { data: tasks, error } = await supabaseClient
-                .from('tasks').select('*').order('created_at', { ascending: false });
-
+            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: false });
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
-
-            if (error) {
-                list.innerHTML = `<li>Ошибка загрузки: ${error.message}</li>`;
-                return;
-            }
-            if (tasks.length === 0) {
-                list.innerHTML = `<li>Пока нет задач. Добавьте первую!</li>`;
-                return;
-            }
+            if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
+            if (tasks.length === 0) { list.innerHTML = `<li>Пока нет задач.</li>`; return; }
             
             tasks.forEach(task => {
                 const li = document.createElement('li');
-                
-                // Левая часть с чекбоксом и текстом
                 const leftDiv = document.createElement('div');
                 leftDiv.className = 'task-left';
-                
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = task.is_done;
-                // При клике на чекбокс вызываем функцию обновления
                 checkbox.onchange = () => toggleTask(task.id, task.is_done);
-
                 const span = document.createElement('span');
-                span.className = task.is_done ? 'task-text done' : 'task-text';
+                span.className = task.is_done ? 'done' : '';
                 span.textContent = task.title;
-
-                leftDiv.appendChild(checkbox);
-                leftDiv.appendChild(span);
-
-                // Правая часть - кнопка удаления
+                leftDiv.appendChild(checkbox); leftDiv.appendChild(span);
+                
                 const delBtn = document.createElement('button');
-                delBtn.className = 'delete-btn';
-                delBtn.innerHTML = '✖';
+                delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTask(task.id);
 
-                li.appendChild(leftDiv);
-                li.appendChild(delBtn);
-                list.appendChild(li);
+                li.appendChild(leftDiv); li.appendChild(delBtn); list.appendChild(li);
             });
         }
 
@@ -122,35 +137,65 @@
             const input = document.getElementById('task-input');
             const title = input.value.trim();
             if (!title) return; 
-
             const { error } = await supabaseClient.from('tasks').insert([{ title: title, is_done: false }]);
-            if (!error) {
-                input.value = ''; 
-                loadTasks(); 
-            } else {
-                alert('Ошибка при добавлении: ' + error.message);
-            }
+            if (!error) { input.value = ''; loadTasks(); } 
+            else { alert('Ошибка: ' + error.message); }
         }
 
-        // НОВАЯ ФУНКЦИЯ: Отметить выполненным / невыполненным
         async function toggleTask(id, currentStatus) {
-            const { error } = await supabaseClient
-                .from('tasks')
-                .update({ is_done: !currentStatus }) // Меняем статус на противоположный
-                .eq('id', id);
-            if (!error) loadTasks();
+            await supabaseClient.from('tasks').update({ is_done: !currentStatus }).eq('id', id);
+            loadTasks();
         }
 
-        // НОВАЯ ФУНКЦИЯ: Удалить задачу
         async function deleteTask(id) {
-            const { error } = await supabaseClient
-                .from('tasks')
-                .delete()
-                .eq('id', id); // Находим по ID и удаляем
-            if (!error) loadTasks();
+            await supabaseClient.from('tasks').delete().eq('id', id);
+            loadTasks();
         }
 
+        // --- ЛОГИКА БЮДЖЕТА (НОВОЕ) ---
+        async function loadTransactions() {
+            const { data: trans, error } = await supabaseClient.from('transactions').select('*').order('created_at', { ascending: false });
+            const list = document.getElementById('transaction-list');
+            list.innerHTML = ''; 
+            let total = 0;
+
+            if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
+            if (trans.length === 0) { list.innerHTML = `<li>Трат пока нет.</li>`; return; }
+
+            trans.forEach(t => {
+                total += Number(t.amount);
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div><span style="font-weight:bold;">${t.description}</span></div>
+                    <div class="transaction-amount">-${t.amount} ₽</div>
+                `;
+                list.appendChild(li);
+            });
+            
+            document.getElementById('total-amount').textContent = total;
+        }
+
+        async function addTransaction() {
+            const descInput = document.getElementById('trans-desc');
+            const amountInput = document.getElementById('trans-amount');
+            const description = descInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if (!description || isNaN(amount) || amount <= 0) {
+                alert("Заполните описание и укажите положительную сумму!");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('transactions').insert([{ description: description, amount: amount }]);
+            if (!error) { 
+                descInput.value = ''; amountInput.value = ''; 
+                loadTransactions(); 
+            } else { alert('Ошибка: ' + error.message); }
+        }
+
+        // Загружаем всё при старте
         loadTasks();
+        loadTransactions();
     </script>
 </body>
 </html>
