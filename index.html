@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Наш Быт</title>
-    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -18,73 +16,51 @@
             box-sizing: border-box;
         }
         h2 { margin-top: 0; }
-        .add-task {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+        .add-task { display: flex; gap: 10px; margin-bottom: 20px; }
         input {
-            flex-grow: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            font-size: 16px;
+            flex-grow: 1; padding: 12px; border-radius: 8px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc); font-size: 16px;
         }
         button {
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: none;
+            padding: 12px 20px; border-radius: 8px; border: none;
             background-color: var(--tg-theme-button-color, #2481cc);
             color: var(--tg-theme-button-text-color, #ffffff);
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
+            font-size: 16px; font-weight: bold; cursor: pointer;
         }
         ul { list-style: none; padding: 0; }
         li {
-            padding: 15px;
-            background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            padding: 15px; background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
         }
         .done { text-decoration: line-through; opacity: 0.6; }
     </style>
 </head>
 <body>
     <h2>Наши дела</h2>
-    
     <div class="add-task">
         <input type="text" id="task-input" placeholder="Что нужно сделать?">
         <button onclick="addTask()">Добавить</button>
     </div>
-
     <ul id="task-list">
         <li>Загрузка задач...</li>
     </ul>
 
     <script>
-        // 1. Инициализация Telegram
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // 2. Инициализация Supabase (ПРОВЕРЬТЕ URL и КЛЮЧ!)
-        const supabaseUrl = 'https://uycdmmsocewesgppjswf.supabase.co
-        // ВСТАВЬТЕ НИЖЕ ВАШ КЛЮЧ (тот, что начинается на eyJ...)
+        // --- НАСТРОЙКИ SUPABASE ---
+        const supabaseUrl = 'https://uycdmmsocewesgppjswf.supabase.co';
+        // ВСТАВЬТЕ ВАШ КЛЮЧ НИЖЕ МЕЖДУ КАВЫЧКАМИ!
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk';
-
-        // Создаем клиент Supabase
+        
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // --------------------------
 
-        // 3. Загрузка задач из базы
         async function loadTasks() {
             const { data: tasks, error } = await supabaseClient
-                .from('tasks')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .from('tasks').select('*').order('created_at', { ascending: false });
 
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
@@ -93,12 +69,10 @@
                 list.innerHTML = `<li>Ошибка загрузки: ${error.message}</li>`;
                 return;
             }
-
             if (tasks.length === 0) {
                 list.innerHTML = `<li>Пока нет задач. Добавьте первую!</li>`;
                 return;
             }
-
             tasks.forEach(task => {
                 const li = document.createElement('li');
                 li.innerHTML = `<span class="${task.is_done ? 'done' : ''}">${task.title}</span>`;
@@ -106,16 +80,12 @@
             });
         }
 
-        // 4. Добавление задачи
         async function addTask() {
             const input = document.getElementById('task-input');
             const title = input.value.trim();
             if (!title) return; 
 
-            const { error } = await supabaseClient
-                .from('tasks')
-                .insert([{ title: title }]);
-
+            const { error } = await supabaseClient.from('tasks').insert([{ title: title }]);
             if (!error) {
                 input.value = ''; 
                 loadTasks(); 
@@ -124,7 +94,6 @@
             }
         }
 
-        // Запускаем при старте
         loadTasks();
     </script>
 </body>
