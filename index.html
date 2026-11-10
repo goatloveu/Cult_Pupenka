@@ -7,74 +7,104 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        :root {
+            --radius: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
-            margin: 0; padding: 20px; box-sizing: border-box;
+            margin: 0; padding: 16px; box-sizing: border-box;
         }
-        h2 { margin-top: 0; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        
+        /* Вкладки */
+        .tabs { 
+            display: flex; gap: 8px; margin-bottom: 20px; 
+            background: var(--tg-theme-secondary-bg-color, #f1f1f1); 
+            padding: 4px; border-radius: var(--radius);
+        }
         .tab-btn {
             flex: 1; padding: 10px; border-radius: 8px; border: none;
-            background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            color: var(--tg-theme-text-color, #000); font-size: 16px; font-weight: bold; cursor: pointer;
+            background-color: transparent; color: var(--tg-theme-text-color, #000); 
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;
         }
-        .tab-btn.active { background-color: var(--tg-theme-button-color, #2481cc); color: #fff; }
+        .tab-btn.active { 
+            background-color: var(--tg-theme-button-color, #2481cc); 
+            color: var(--tg-theme-button-text-color, #fff); 
+            box-shadow: var(--shadow);
+        }
 
-        .add-form { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        /* Формы */
+        .add-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         input, select {
-            padding: 12px; border-radius: 8px; border: 1px solid var(--tg-theme-hint-color, #ccc); font-size: 16px;
-            box-sizing: border-box;
+            padding: 12px; border-radius: var(--radius); 
+            border: 1px solid var(--tg-theme-hint-color, #ccc); font-size: 15px;
+            box-sizing: border-box; background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            outline: none; transition: border-color 0.2s;
         }
-        input[type="text"] { flex-grow: 1; min-width: 120px; }
-        input[type="number"] { width: 100px; }
-        select { flex-grow: 1; background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000); }
+        input:focus, select:focus { border-color: var(--tg-theme-button-color, #2481cc); }
+        input[type="text"] { flex-grow: 1; min-width: 140px; }
+        input[type="number"] { width: 90px; }
+        select { flex-grow: 1; cursor: pointer; appearance: none; -webkit-appearance: none; }
         
         button.add-btn {
-            padding: 12px 20px; border-radius: 8px; border: none;
+            padding: 14px; border-radius: var(--radius); border: none;
             background-color: var(--tg-theme-button-color, #2481cc); color: #fff;
             font-size: 16px; font-weight: bold; cursor: pointer; width: 100%;
+            transition: opacity 0.2s;
         }
+        button.add-btn:active { opacity: 0.8; }
         
-        ul { list-style: none; padding: 0; }
+        /* Списки */
+        ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
         li {
-            padding: 15px; background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+            padding: 14px; background-color: var(--tg-theme-bg-color, #fff);
+            border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between;
+            box-shadow: var(--shadow); border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1);
         }
-        .task-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
-        .done { text-decoration: line-through; opacity: 0.6; }
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         
-        .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #ff4d4d; opacity: 0.8; }
-        .delete-btn:hover { opacity: 1; }
+        .task-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
+        .done { text-decoration: line-through; opacity: 0.5; }
+        input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--tg-theme-button-color, #2481cc); }
         
+        /* Кнопка удаления */
+        .delete-btn { 
+            background: none; border: none; font-size: 16px; cursor: pointer; 
+            color: #ff4d4d; opacity: 0.5; padding: 4px; transition: 0.2s;
+        }
+        .delete-btn:hover, .delete-btn:active { opacity: 1; }
+        
+        /* Бюджет */
         .budget-summary { 
-            display: flex; justify-content: space-between; margin-bottom: 20px; 
-            background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 15px; border-radius: 8px; text-align: center;
+            display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px;
         }
-        .budget-summary div { display: flex; flex-direction: column; font-size: 14px; }
-        .budget-summary span { font-size: 18px; font-weight: bold; margin-top: 5px; }
+        .budget-card {
+            flex: 1; background: var(--tg-theme-secondary-bg-color, #f1f1f1); 
+            padding: 12px; border-radius: var(--radius); text-align: center;
+            display: flex; flex-direction: column;
+        }
+        .budget-card-title { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .budget-card-value { font-size: 18px; font-weight: 800; }
         .income-text { color: #2ecc71; }
         .expense-text { color: #ff4d4d; }
         
-        .trans-right { display: flex; align-items: center; gap: 10px; }
+        .trans-info { display: flex; flex-direction: column; gap: 4px; }
+        .trans-title { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+        .trans-amount { font-weight: bold; font-size: 15px; }
         
-        .category-badge {
-            font-size: 12px; background: #e0e0e0; color: #333;
-            padding: 2px 8px; border-radius: 12px; margin-right: 4px;
-        }
+        /* Бейджи */
+        .category-badge { font-size: 13px; opacity: 0.8; }
+        .author-text { font-size: 12px; opacity: 0.5; font-weight: normal; margin-left: 4px; }
         
-        /* Стиль для имени автора */
-        .author-text {
-            font-size: 12px; opacity: 0.6; font-weight: normal;
-        }
+        .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
     </style>
 </head>
 <body>
     <div class="tabs">
-        <button class="tab-btn active" id="tab-tasks" onclick="switchTab('tasks')">Дела</button>
-        <button class="tab-btn" id="tab-budget" onclick="switchTab('budget')">Бюджет</button>
+        <button class="tab-btn active" id="tab-tasks" onclick="switchTab('tasks')">📝 Дела</button>
+        <button class="tab-btn" id="tab-budget" onclick="switchTab('budget')">💰 Бюджет</button>
     </div>
 
     <div id="tasks-view">
@@ -82,14 +112,23 @@
             <input type="text" id="task-input" placeholder="Что нужно сделать?">
             <button class="add-btn" onclick="addTask()">Добавить</button>
         </div>
-        <ul id="task-list"><li>Загрузка...</li></ul>
+        <ul id="task-list"><li class="empty-state">Загрузка...</li></ul>
     </div>
 
     <div id="budget-view" style="display: none;">
         <div class="budget-summary">
-            <div>Доходы<br><span id="total-income" class="income-text">0</span> ₽</div>
-            <div>Расходы<br><span id="total-expense" class="expense-text">0</span> ₽</div>
-            <div>Баланс<br><span id="total-balance">0</span> ₽</div>
+            <div class="budget-card">
+                <span class="budget-card-title">Доходы</span>
+                <span id="total-income" class="budget-card-value income-text">0 ₽</span>
+            </div>
+            <div class="budget-card">
+                <span class="budget-card-title">Расходы</span>
+                <span id="total-expense" class="budget-card-value expense-text">0 ₽</span>
+            </div>
+            <div class="budget-card">
+                <span class="budget-card-title">Баланс</span>
+                <span id="total-balance" class="budget-card-value">0 ₽</span>
+            </div>
         </div>
 
         <div class="add-form">
@@ -98,32 +137,36 @@
                 <option value="income">Доход</option>
             </select>
             <select id="trans-category">
-                <option value="Продукты">Продукты</option>
-                <option value="Жилье">Жилье</option>
-                <option value="Транспорт">Транспорт</option>
-                <option value="Развлечения">Развлечения</option>
-                <option value="Здоровье">Здоровье</option>
-                <option value="Другое">Другое</option>
+                <option value="Продукты">🍔 Продукты</option>
+                <option value="Жилье">🏠 Жилье</option>
+                <option value="Транспорт">🚗 Транспорт</option>
+                <option value="Развлечения">🎉 Развлечения</option>
+                <option value="Здоровье">💊 Здоровье</option>
+                <option value="Другое">📦 Другое</option>
             </select>
             <input type="text" id="trans-desc" placeholder="Комментарий">
             <input type="number" id="trans-amount" placeholder="Сумма">
         </div>
         <button class="add-btn" onclick="addTransaction()">Добавить операцию</button>
 
-        <ul id="transaction-list" style="margin-top: 20px;"><li>Загрузка...</li></ul>
+        <ul id="transaction-list" style="margin-top: 20px;"><li class="empty-state">Загрузка...</li></ul>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
-
-        // Берем имя из Telegram. Если имени нет (например, открыли в браузере) - пишем "Гость"
         const userName = tg.initDataUnsafe?.user?.first_name || 'Гость';
 
         // --- НАСТРОЙКИ SUPABASE ---
         const supabaseUrl = 'https://uycdmmsocewesgppjswf.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Y2RtbXNvY2V3ZXNncHBqc3dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNjEwMjUsImV4cCI6MjEwOTczNzAyNX0.b8JpqyHy1p7r29aCwPEhufiSTlOxSTk-khDHv_m_PQk'; // <--- ВСТАВЬТЕ ВАШ КЛЮЧ eyJ...
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Словарь эмодзи для старых записей (если в базе сохранено просто "Продукты")
+        const catEmojis = {
+            'Продукты': '🍔', 'Жилье': '🏠', 'Транспорт': '🚗', 
+            'Развлечения': '🎉', 'Здоровье': '💊', 'Другое': '📦'
+        };
 
         function switchTab(tabName) {
             document.getElementById('tasks-view').style.display = 'none';
@@ -141,7 +184,7 @@
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
-            if (tasks.length === 0) { list.innerHTML = `<li>Пока нет задач.</li>`; return; }
+            if (tasks.length === 0) { list.innerHTML = `<li class="empty-state">Пока нет задач. Добавьте первую!</li>`; return; }
             
             tasks.forEach(task => {
                 const li = document.createElement('li');
@@ -153,9 +196,7 @@
                 
                 const span = document.createElement('span');
                 span.className = task.is_done ? 'done' : ''; 
-                
-                // Добавляем имя автора к задаче
-                const author = task.added_by ? `<span class="author-text"> • ${task.added_by}</span>` : '';
+                const author = task.added_by ? `<span class="author-text">(${task.added_by})</span>` : '';
                 span.innerHTML = `${task.title} ${author}`;
                 
                 leftDiv.appendChild(checkbox); leftDiv.appendChild(span);
@@ -172,7 +213,6 @@
             const input = document.getElementById('task-input');
             const title = input.value.trim();
             if (!title) return; 
-            // Отправляем имя автора (userName) в базу
             const { error } = await supabaseClient.from('tasks').insert([{ title: title, is_done: false, added_by: userName }]);
             if (!error) { input.value = ''; loadTasks(); } else { alert('Ошибка: ' + error.message); }
         }
@@ -197,7 +237,7 @@
             let totalExpense = 0;
 
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
-            if (trans.length === 0) { list.innerHTML = `<li>Операций пока нет.</li>`; return; }
+            if (trans.length === 0) { list.innerHTML = `<li class="empty-state">Операций пока нет.</li>`; return; }
 
             trans.forEach(t => {
                 const isIncome = t.type === 'income';
@@ -210,37 +250,45 @@
                 const colorClass = isIncome ? 'income-text' : 'expense-text';
                 const sign = isIncome ? '+' : '-';
 
-                const cat = t.category ? `<span class="category-badge">${t.category}</span>` : '';
-                // Добавляем имя автора к транзакции
-                const author = t.added_by ? `<span class="author-text"> • ${t.added_by}</span>` : '';
+                const catName = t.category || 'Другое';
+                const emoji = catEmojis[catName] || '📦';
+                const author = t.added_by ? `<span class="author-text">${t.added_by}</span>` : '';
 
                 const infoDiv = document.createElement('div');
+                infoDiv.className = 'trans-info';
                 infoDiv.innerHTML = `
-                    <div style="font-weight:bold; margin-bottom: 4px;">
-                        ${cat} ${t.description} ${author}
+                    <div class="trans-title">
+                        <span class="category-badge">${emoji} ${catName}</span>
+                        ${author}
                     </div>
-                    <div class="${colorClass}">${sign}${amount} ₽</div>
+                    <div style="font-size:13px; opacity:0.8;">${t.description}</div>
                 `;
 
                 const rightDiv = document.createElement('div');
-                rightDiv.className = 'trans-right';
+                rightDiv.style.display = 'flex'; rightDiv.style.alignItems = 'center'; rightDiv.style.gap = '12px';
+                
+                const amountDiv = document.createElement('div');
+                amountDiv.className = `trans-amount ${colorClass}`;
+                amountDiv.textContent = `${sign}${amount} ₽`;
+
                 const delBtn = document.createElement('button');
                 delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTransaction(t.id);
 
+                rightDiv.appendChild(amountDiv);
                 rightDiv.appendChild(delBtn);
+                
                 li.appendChild(infoDiv); li.appendChild(rightDiv);
                 list.appendChild(li);
             });
             
-            document.getElementById('total-income').textContent = totalIncome;
-            document.getElementById('total-expense').textContent = totalExpense;
+            document.getElementById('total-income').textContent = `${totalIncome} ₽`;
+            document.getElementById('total-expense').textContent = `${totalExpense} ₽`;
             
             const balance = totalIncome - totalExpense;
             const balanceEl = document.getElementById('total-balance');
-            balanceEl.textContent = balance;
-            if (balance < 0) balanceEl.style.color = '#ff4d4d';
-            else balanceEl.style.color = 'var(--tg-theme-text-color, #000)';
+            balanceEl.textContent = `${balance} ₽`;
+            balanceEl.style.color = balance < 0 ? '#ff4d4d' : 'var(--tg-theme-text-color, #000)';
         }
 
         async function addTransaction() {
@@ -255,11 +303,8 @@
             }
 
             const { error } = await supabaseClient.from('transactions').insert([{ 
-                description: description, 
-                amount: amount,
-                type: type,
-                category: category,
-                added_by: userName // Отправляем имя автора
+                description: description, amount: amount,
+                type: type, category: category, added_by: userName 
             }]);
             
             if (!error) { 
