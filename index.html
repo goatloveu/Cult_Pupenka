@@ -94,7 +94,7 @@
                 </select>
             </div>
             
-            <!-- НОВЫЙ РЯД: Периодичность и Время -->
+            <!-- Периодичность и Время -->
             <div class="form-row">
                 <select id="task-frequency">
                     <option value="Один раз">Один раз</option>
@@ -180,7 +180,12 @@
 
         // --- ДОМАШНИЙ МЕНЕДЖЕР ---
         async function loadTasks() {
-            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: false });
+            // ИЗМЕНЕНИЕ ЗДЕСЬ: Сортируем по due_date (по возрастанию), пустые даты в конце
+            const { data: tasks, error } = await supabaseClient
+                .from('tasks')
+                .select('*')
+                .order('due_date', { ascending: true, nullsFirst: false });
+                
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
@@ -197,13 +202,10 @@
                 
                 const contentDiv = document.createElement('div'); contentDiv.className = 'task-content';
                 
-                // Собираем мета-информацию
                 const cat = task.category ? `<span class="badge">${catEmojis[task.category] || ''} ${task.category}</span>` : '';
                 const prio = task.priority && task.priority !== 'Обычная' ? `<span class="badge" style="color:${task.priority==='Срочная'?'#ff4d4d':'#f39c12'}">${task.priority}</span>` : '';
                 const date = task.due_date ? `<span class="badge">📅 ${new Date(task.due_date).toLocaleDateString('ru-RU')}</span>` : '';
                 const assignee = task.assignee ? `<span class="badge">👤 ${task.assignee}</span>` : '';
-                
-                // НОВЫЕ БЕЙДЖИ: Периодичность и Время
                 const freq = task.frequency && task.frequency !== 'Один раз' ? `<span class="badge">🔄 ${task.frequency}</span>` : '';
                 const time = task.time_estimate ? `<span class="badge">⏱ ${task.time_estimate}</span>` : '';
 
@@ -242,7 +244,7 @@
             if (!error) { 
                 document.getElementById('task-input').value = ''; 
                 document.getElementById('task-date').value = '';
-                document.getElementById('task-time').value = ''; // Сбрасываем время
+                document.getElementById('task-time').value = ''; 
                 loadTasks(); 
             } else { alert('Ошибка: ' + error.message); }
         }
