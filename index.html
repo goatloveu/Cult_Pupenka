@@ -12,32 +12,37 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff); 
-            color: var(--tg-theme-text-color, #000000);
+            background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000);
             margin: 0; padding: 12px; width: 100vw; overflow-x: hidden;
         }
         
-        .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 4px; border-radius: var(--radius); }
-        .tab-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: var(--tg-theme-text-color, #000); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        /* Вкладки */
+        .tabs { display: flex; gap: 6px; margin-bottom: 16px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 4px; border-radius: var(--radius); }
+        .tab-btn { flex: 1; padding: 10px 4px; border-radius: 8px; border: none; background: transparent; color: var(--tg-theme-text-color, #000); font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .tab-btn.active { background-color: var(--tg-theme-button-color, #2481cc); color: #fff; box-shadow: var(--shadow); }
 
+        /* Под-вкладки для покупок */
+        .sub-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+        .sub-tab-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); background: transparent; color: var(--tg-theme-text-color, #000); font-size: 14px; cursor: pointer; }
+        .sub-tab-btn.active { border-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-color, #2481cc); font-weight: bold; }
+
+        /* Формы */
         .add-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 12px; border-radius: var(--radius); width: 100%; }
         .form-row { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
         .form-row > * { flex: 1 1 120px; min-width: 0; }
         
         input, select {
             padding: 10px; border-radius: 8px; border: 1px solid var(--tg-theme-hint-color, #ccc); 
-            font-size: 14px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); 
-            outline: none; width: 100%;
+            font-size: 14px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); outline: none; width: 100%;
         }
         button.add-btn { padding: 12px; border-radius: 8px; border: none; background-color: var(--tg-theme-button-color, #2481cc); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
         
+        /* Списки */
         ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; width: 100%; }
         li { 
             padding: 12px; background-color: var(--tg-theme-bg-color, #fff); border-radius: var(--radius); 
             display: flex; flex-direction: column; gap: 8px; 
-            box-shadow: var(--shadow); border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); 
-            width: 100%; word-break: break-word;
+            box-shadow: var(--shadow); border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); width: 100%; word-break: break-word;
         }
         
         .task-item { flex-direction: row; align-items: flex-start; justify-content: space-between; }
@@ -69,55 +74,41 @@
     </style>
 </head>
 <body>
+    <!-- Вкладки -->
     <div class="tabs">
         <button class="tab-btn active" id="tab-tasks" onclick="switchTab('tasks')">🏠 Менеджер</button>
         <button class="tab-btn" id="tab-budget" onclick="switchTab('budget')">💰 Бюджет</button>
+        <button class="tab-btn" id="tab-shopping" onclick="switchTab('shopping')">🛒 Покупки</button>
     </div>
 
     <!-- ДОМАШНИЙ МЕНЕДЖЕР -->
     <div id="tasks-view">
         <div class="add-form">
             <input type="text" id="task-input" placeholder="Название задачи...">
-            
             <div class="form-row">
                 <select id="task-category">
-                    <option value="Уборка">🧹 Уборка</option>
-                    <option value="Работа">💼 Работа</option>
-                    <option value="Здоровье">💊 Здоровье</option>
-                    <option value="Хобби">🎨 Хобби</option>
-                    <option value="Другое">📦 Другое</option>
+                    <option value="Уборка">🧹 Уборка</option><option value="Работа">💼 Работа</option>
+                    <option value="Здоровье">💊 Здоровье</option><option value="Хобби">🎨 Хобби</option><option value="Другое">📦 Другое</option>
                 </select>
                 <select id="task-priority">
-                    <option value="Обычная">⚪ Обычная</option>
-                    <option value="Важная">🔴 Важная</option>
-                    <option value="Срочная">🔥 Срочная</option>
+                    <option value="Обычная">⚪ Обычная</option><option value="Важная">🔴 Важная</option><option value="Срочная">🔥 Срочная</option>
                 </select>
             </div>
-            
-            <!-- Периодичность и Время -->
             <div class="form-row">
                 <select id="task-frequency">
-                    <option value="Один раз">Один раз</option>
-                    <option value="Ежедневно">Ежедневно</option>
-                    <option value="Еженедельно">Еженедельно</option>
-                    <option value="Ежемесячно">Ежемесячно</option>
+                    <option value="Один раз">Один раз</option><option value="Ежедневно">Ежедневно</option>
+                    <option value="Еженедельно">Еженедельно</option><option value="Ежемесячно">Ежемесячно</option>
                 </select>
                 <select id="task-time">
-                    <option value="">Время...</option>
-                    <option value="15 мин">15 мин</option>
-                    <option value="30 мин">30 мин</option>
-                    <option value="1 час">1 час</option>
-                    <option value="> 2 часов">&gt; 2 часов</option>
+                    <option value="">Время...</option><option value="15 мин">15 мин</option>
+                    <option value="30 мин">30 мин</option><option value="1 час">1 час</option><option value="> 2 часов">&gt; 2 часов</option>
                 </select>
             </div>
-
             <div class="form-row">
                 <input type="date" id="task-date" title="Дата выполнения">
                 <select id="task-assignee">
-                    <option value="">Исполнитель...</option>
-                    <option value="Муж">Муж</option>
-                    <option value="Жена">Жена</option>
-                    <option value="Вместе">Вместе</option>
+                    <option value="">Исполнитель...</option><option value="Муж">Муж</option>
+                    <option value="Жена">Жена</option><option value="Вместе">Вместе</option>
                 </select>
             </div>
             <button class="add-btn" onclick="addTask()">Добавить задачу</button>
@@ -149,13 +140,22 @@
             <button class="add-btn" onclick="addTransaction()">Добавить операцию</button>
         </div>
         <ul id="transaction-list" style="margin-top: 10px;"><li class="empty-state">Загрузка...</li></ul>
+    </div>
 
-        <div class="section-title">🛒 Планируемые покупки</div>
+    <!-- ПОКУПКИ (НОВАЯ ВКЛАДКА) -->
+    <div id="shopping-view" style="display: none;">
+        <!-- Переключатель списков -->
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" id="sub-tab-daily" onclick="switchShopTab('Ежедневные')">Ежедневные</button>
+            <button class="sub-tab-btn" id="sub-tab-longterm" onclick="switchShopTab('Крупные')">Крупные</button>
+        </div>
+
         <div class="add-form" style="flex-direction: row;">
             <input type="text" id="shop-input" placeholder="Что купить?">
             <button class="add-btn" style="width: auto; padding: 10px 15px; flex-shrink: 0;" onclick="addShoppingItem()">+</button>
         </div>
-        <ul id="shopping-list"><li class="empty-state">Список пуст</li></ul>
+        
+        <ul id="shopping-list"><li class="empty-state">Загрузка...</li></ul>
     </div>
 
     <script>
@@ -169,23 +169,24 @@
 
         const catEmojis = { 'Продукты': '🍔', 'Жилье': '🏠', 'Транспорт': '🚗', 'Развлечения': '🎉', 'Здоровье': '💊', 'Другое': '📦', 'Уборка': '🧹', 'Работа': '💼', 'Хобби': '🎨' };
 
+        // Переменная для хранения текущего выбранного списка покупок
+        let currentShopList = 'Ежедневные';
+
         function switchTab(tabName) {
             document.getElementById('tasks-view').style.display = 'none';
             document.getElementById('budget-view').style.display = 'none';
+            document.getElementById('shopping-view').style.display = 'none';
             document.getElementById('tab-tasks').classList.remove('active');
             document.getElementById('tab-budget').classList.remove('active');
+            document.getElementById('tab-shopping').classList.remove('active');
+
             document.getElementById(tabName + '-view').style.display = 'block';
             document.getElementById('tab-' + tabName).classList.add('active');
         }
 
         // --- ДОМАШНИЙ МЕНЕДЖЕР ---
         async function loadTasks() {
-            // ИЗМЕНЕНИЕ ЗДЕСЬ: Сортируем по due_date (по возрастанию), пустые даты в конце
-            const { data: tasks, error } = await supabaseClient
-                .from('tasks')
-                .select('*')
-                .order('due_date', { ascending: true, nullsFirst: false });
-                
+            const { data: tasks, error } = await supabaseClient.from('tasks').select('*').order('due_date', { ascending: true, nullsFirst: false });
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
@@ -194,14 +195,12 @@
             tasks.forEach(task => {
                 const li = document.createElement('li');
                 li.className = 'task-item';
-                
                 const leftDiv = document.createElement('div'); leftDiv.className = 'task-left';
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
                 checkbox.onchange = () => toggleTask(task.id, task.is_done);
                 
                 const contentDiv = document.createElement('div'); contentDiv.className = 'task-content';
-                
                 const cat = task.category ? `<span class="badge">${catEmojis[task.category] || ''} ${task.category}</span>` : '';
                 const prio = task.priority && task.priority !== 'Обычная' ? `<span class="badge" style="color:${task.priority==='Срочная'?'#ff4d4d':'#f39c12'}">${task.priority}</span>` : '';
                 const date = task.due_date ? `<span class="badge">📅 ${new Date(task.due_date).toLocaleDateString('ru-RU')}</span>` : '';
@@ -213,13 +212,10 @@
                     <div class="task-title ${task.is_done ? 'done' : ''}">${task.title}</div>
                     <div class="task-meta">${cat} ${prio} ${date} ${assignee} ${freq} ${time}</div>
                 `;
-                
                 leftDiv.appendChild(checkbox); leftDiv.appendChild(contentDiv);
-                
                 const delBtn = document.createElement('button');
                 delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTask(task.id);
-
                 li.appendChild(leftDiv); li.appendChild(delBtn); list.appendChild(li);
             });
         }
@@ -227,36 +223,24 @@
         async function addTask() {
             const title = document.getElementById('task-input').value.trim();
             if (!title) return; 
-            
-            const category = document.getElementById('task-category').value;
-            const priority = document.getElementById('task-priority').value;
-            const due_date = document.getElementById('task-date').value || null;
-            const assignee = document.getElementById('task-assignee').value || null;
-            const frequency = document.getElementById('task-frequency').value;
-            const time_estimate = document.getElementById('task-time').value || null;
-
             const { error } = await supabaseClient.from('tasks').insert([{ 
-                title: title, is_done: false, added_by: userName,
-                category: category, priority: priority, due_date: due_date, assignee: assignee,
-                frequency: frequency, time_estimate: time_estimate
+                title, is_done: false, added_by: userName,
+                category: document.getElementById('task-category').value, 
+                priority: document.getElementById('task-priority').value, 
+                due_date: document.getElementById('task-date').value || null, 
+                assignee: document.getElementById('task-assignee').value || null,
+                frequency: document.getElementById('task-frequency').value, 
+                time_estimate: document.getElementById('task-time').value || null
             }]);
-            
             if (!error) { 
                 document.getElementById('task-input').value = ''; 
                 document.getElementById('task-date').value = '';
                 document.getElementById('task-time').value = ''; 
                 loadTasks(); 
-            } else { alert('Ошибка: ' + error.message); }
+            } 
         }
-
-        async function toggleTask(id, currentStatus) {
-            await supabaseClient.from('tasks').update({ is_done: !currentStatus }).eq('id', id);
-            loadTasks();
-        }
-        async function deleteTask(id) {
-            await supabaseClient.from('tasks').delete().eq('id', id);
-            loadTasks();
-        }
+        async function toggleTask(id, currentStatus) { await supabaseClient.from('tasks').update({ is_done: !currentStatus }).eq('id', id); loadTasks(); }
+        async function deleteTask(id) { await supabaseClient.from('tasks').delete().eq('id', id); loadTasks(); }
 
         // --- БЮДЖЕТ ---
         async function loadTransactions() {
@@ -264,29 +248,22 @@
             const list = document.getElementById('transaction-list');
             list.innerHTML = ''; 
             let totalIncome = 0; let totalExpense = 0;
-
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
             if (trans.length === 0) { list.innerHTML = `<li class="empty-state">Операций пока нет.</li>`; return; }
 
             trans.forEach(t => {
                 const isIncome = t.type === 'income'; const amount = Number(t.amount);
                 if (isIncome) totalIncome += amount; else totalExpense += amount;
-
                 const li = document.createElement('li');
-                const colorClass = isIncome ? 'income-text' : 'expense-text';
-                const sign = isIncome ? '+' : '-';
-                const emoji = catEmojis[t.category] || '📦';
-
                 li.innerHTML = `
                     <div class="trans-info">
-                        <div class="trans-title"><span class="category-badge">${emoji} ${t.category}</span> <span style="font-size:11px; opacity:0.6;">${t.added_by}</span></div>
+                        <div class="trans-title"><span class="category-badge">${catEmojis[t.category] || '📦'} ${t.category}</span> <span style="font-size:11px; opacity:0.6;">${t.added_by}</span></div>
                         <div style="font-size:13px; opacity:0.9;">${t.description}</div>
                     </div>
                     <div class="trans-bottom">
-                        <div class="trans-amount ${colorClass}">${sign}${amount} ₽</div>
+                        <div class="trans-amount ${isIncome ? 'income-text' : 'expense-text'}">${isIncome ? '+' : '-'}${amount} ₽</div>
                         <button class="delete-btn" onclick="deleteTransaction('${t.id}')">✖</button>
-                    </div>
-                `;
+                    </div>`;
                 list.appendChild(li);
             });
             document.getElementById('total-income').textContent = `${totalIncome} ₽`;
@@ -296,35 +273,49 @@
             balanceEl.textContent = `${balance} ₽`;
             balanceEl.style.color = balance < 0 ? '#ff4d4d' : 'var(--tg-theme-text-color, #000)';
         }
-
         async function addTransaction() {
-            const type = document.getElementById('trans-type').value;
-            const category = document.getElementById('trans-category').value;
-            const description = document.getElementById('trans-desc').value.trim();
+            const desc = document.getElementById('trans-desc').value.trim();
             const amount = parseFloat(document.getElementById('trans-amount').value);
-            if (!description || isNaN(amount) || amount <= 0) { alert("Заполните описание и сумму!"); return; }
-
-            const { error } = await supabaseClient.from('transactions').insert([{ description, amount, type, category, added_by: userName }]);
-            if (!error) { document.getElementById('trans-desc').value = ''; document.getElementById('trans-amount').value = ''; loadTransactions(); } 
+            if (!desc || isNaN(amount) || amount <= 0) return;
+            await supabaseClient.from('transactions').insert([{ 
+                description: desc, amount, 
+                type: document.getElementById('trans-type').value, 
+                category: document.getElementById('trans-category').value, 
+                added_by: userName 
+            }]);
+            document.getElementById('trans-desc').value = ''; document.getElementById('trans-amount').value = ''; 
+            loadTransactions();
         }
-        async function deleteTransaction(id) {
-            await supabaseClient.from('transactions').delete().eq('id', id); loadTransactions();
+        async function deleteTransaction(id) { await supabaseClient.from('transactions').delete().eq('id', id); loadTransactions(); }
+
+        // --- ПОКУПКИ (НОВЫЙ РАЗДЕЛ) ---
+        function switchShopTab(listType) {
+            currentShopList = listType;
+            document.getElementById('sub-tab-daily').classList.remove('active');
+            document.getElementById('sub-tab-longterm').classList.remove('active');
+            if (listType === 'Ежедневные') document.getElementById('sub-tab-daily').classList.add('active');
+            else document.getElementById('sub-tab-longterm').classList.add('active');
+            loadShoppingList(); // Перезагружаем список при переключении
         }
 
-        // --- СПИСОК ПОКУПОК ---
         async function loadShoppingList() {
+            // Загружаем все покупки
             const { data: items, error } = await supabaseClient.from('shopping_list').select('*').order('created_at', { ascending: true });
             const list = document.getElementById('shopping-list');
             list.innerHTML = '';
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
-            if (items.length === 0) { list.innerHTML = `<li class="empty-state">Список покупок пуст</li>`; return; }
 
-            items.forEach(item => {
+            // Фильтруем по выбранному списку (Ежедневные или Крупные)
+            const filteredItems = items.filter(item => (item.list_type || 'Ежедневные') === currentShopList);
+
+            if (filteredItems.length === 0) { 
+                list.innerHTML = `<li class="empty-state">В этом списке пока пусто</li>`; 
+                return; 
+            }
+
+            filteredItems.forEach(item => {
                 const li = document.createElement('li');
-                li.style.flexDirection = 'row';
-                li.style.alignItems = 'center';
-                li.style.justifyContent = 'space-between';
-                
+                li.style.flexDirection = 'row'; li.style.alignItems = 'center'; li.style.justifyContent = 'space-between';
                 li.innerHTML = `
                     <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
                         <input type="checkbox" ${item.is_bought ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}', ${item.is_bought})">
@@ -335,21 +326,24 @@
                 list.appendChild(li);
             });
         }
+
         async function addShoppingItem() {
             const input = document.getElementById('shop-input');
             const title = input.value.trim();
             if (!title) return;
-            const { error } = await supabaseClient.from('shopping_list').insert([{ title: title, is_bought: false }]);
-            if (!error) { input.value = ''; loadShoppingList(); }
-        }
-        async function toggleShoppingItem(id, currentStatus) {
-            await supabaseClient.from('shopping_list').update({ is_bought: !currentStatus }).eq('id', id);
+            // Отправляем в базу текущий выбранный список (Ежедневные/Крупные)
+            await supabaseClient.from('shopping_list').insert([{ 
+                title: title, 
+                is_bought: false, 
+                list_type: currentShopList 
+            }]);
+            input.value = ''; 
             loadShoppingList();
         }
-        async function deleteShoppingItem(id) {
-            await supabaseClient.from('shopping_list').delete().eq('id', id); loadShoppingList();
-        }
+        async function toggleShoppingItem(id, currentStatus) { await supabaseClient.from('shopping_list').update({ is_bought: !currentStatus }).eq('id', id); loadShoppingList(); }
+        async function deleteShoppingItem(id) { await supabaseClient.from('shopping_list').delete().eq('id', id); loadShoppingList(); }
 
+        // Запуск при старте
         loadTasks();
         loadTransactions();
         loadShoppingList();
