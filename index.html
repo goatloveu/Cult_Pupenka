@@ -46,11 +46,9 @@
         .done { text-decoration: line-through; opacity: 0.6; }
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         
-        /* Кнопка удаления (крестик) */
         .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #ff4d4d; opacity: 0.8; }
         .delete-btn:hover { opacity: 1; }
         
-        /* Стили для бюджета */
         .budget-summary { 
             display: flex; justify-content: space-between; margin-bottom: 20px; 
             background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 15px; border-radius: 8px; text-align: center;
@@ -61,6 +59,12 @@
         .expense-text { color: #ff4d4d; }
         
         .trans-right { display: flex; align-items: center; gap: 10px; }
+        
+        /* Стиль для категории в списке */
+        .category-badge {
+            font-size: 12px; background: #e0e0e0; color: #333;
+            padding: 2px 8px; border-radius: 12px; margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -89,7 +93,16 @@
                 <option value="expense">Расход</option>
                 <option value="income">Доход</option>
             </select>
-            <input type="text" id="trans-desc" placeholder="На что? / Откуда?">
+            <!-- НОВЫЙ ВЫПАДАЮЩИЙ СПИСОК КАТЕГОРИЙ -->
+            <select id="trans-category">
+                <option value="Продукты">Продукты</option>
+                <option value="Жилье">Жилье</option>
+                <option value="Транспорт">Транспорт</option>
+                <option value="Развлечения">Развлечения</option>
+                <option value="Здоровье">Здоровье</option>
+                <option value="Другое">Другое</option>
+            </select>
+            <input type="text" id="trans-desc" placeholder="Комментарий (напр. Пятерочка)">
             <input type="number" id="trans-amount" placeholder="Сумма">
         </div>
         <button class="add-btn" onclick="addTransaction()">Добавить операцию</button>
@@ -181,30 +194,29 @@
                 else totalExpense += amount;
 
                 const li = document.createElement('li');
-                
                 const colorClass = isIncome ? 'income-text' : 'expense-text';
                 const sign = isIncome ? '+' : '-';
 
-                // Левая часть: описание и сумма
+                // Если категория есть (для старых записей может быть null), показываем её
+                const cat = t.category ? `<span class="category-badge">${t.category}</span>` : '';
+
+                // Левая часть: категория, описание и сумма
                 const infoDiv = document.createElement('div');
                 infoDiv.innerHTML = `
-                    <div style="font-weight:bold;">${t.description}</div>
+                    <div style="font-weight:bold; margin-bottom: 4px;">
+                        ${cat} ${t.description}
+                    </div>
                     <div class="${colorClass}">${sign}${amount} ₽</div>
                 `;
 
-                // Правая часть: кнопка удаления
                 const rightDiv = document.createElement('div');
                 rightDiv.className = 'trans-right';
-                
                 const delBtn = document.createElement('button');
-                delBtn.className = 'delete-btn'; 
-                delBtn.innerHTML = '✖';
+                delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTransaction(t.id);
 
                 rightDiv.appendChild(delBtn);
-
-                li.appendChild(infoDiv);
-                li.appendChild(rightDiv);
+                li.appendChild(infoDiv); li.appendChild(rightDiv);
                 list.appendChild(li);
             });
             
@@ -219,13 +231,10 @@
         }
 
         async function addTransaction() {
-            const typeInput = document.getElementById('trans-type');
-            const descInput = document.getElementById('trans-desc');
-            const amountInput = document.getElementById('trans-amount');
-            
-            const type = typeInput.value;
-            const description = descInput.value.trim();
-            const amount = parseFloat(amountInput.value);
+            const type = document.getElementById('trans-type').value;
+            const category = document.getElementById('trans-category').value; // Берем категорию
+            const description = document.getElementById('trans-desc').value.trim();
+            const amount = parseFloat(document.getElementById('trans-amount').value);
 
             if (!description || isNaN(amount) || amount <= 0) {
                 alert("Заполните описание и укажите положительную сумму!");
@@ -235,19 +244,20 @@
             const { error } = await supabaseClient.from('transactions').insert([{ 
                 description: description, 
                 amount: amount,
-                type: type 
+                type: type,
+                category: category // Отправляем категорию в базу
             }]);
             
             if (!error) { 
-                descInput.value = ''; amountInput.value = ''; 
+                document.getElementById('trans-desc').value = ''; 
+                document.getElementById('trans-amount').value = ''; 
                 loadTransactions(); 
             } else { alert('Ошибка: ' + error.message); }
         }
 
-        // НОВАЯ ФУНКЦИЯ: Удаление операции из бюджета
         async function deleteTransaction(id) {
             const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
-            if (!error) loadTransactions(); // Если удалилось - пересчитываем и обновляем
+            if (!error) loadTransactions();
         }
 
         loadTasks();
