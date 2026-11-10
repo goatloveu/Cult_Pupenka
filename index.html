@@ -60,10 +60,14 @@
         
         .trans-right { display: flex; align-items: center; gap: 10px; }
         
-        /* Стиль для категории в списке */
         .category-badge {
             font-size: 12px; background: #e0e0e0; color: #333;
-            padding: 2px 8px; border-radius: 12px; margin-right: 8px;
+            padding: 2px 8px; border-radius: 12px; margin-right: 4px;
+        }
+        
+        /* Стиль для имени автора */
+        .author-text {
+            font-size: 12px; opacity: 0.6; font-weight: normal;
         }
     </style>
 </head>
@@ -93,7 +97,6 @@
                 <option value="expense">Расход</option>
                 <option value="income">Доход</option>
             </select>
-            <!-- НОВЫЙ ВЫПАДАЮЩИЙ СПИСОК КАТЕГОРИЙ -->
             <select id="trans-category">
                 <option value="Продукты">Продукты</option>
                 <option value="Жилье">Жилье</option>
@@ -102,7 +105,7 @@
                 <option value="Здоровье">Здоровье</option>
                 <option value="Другое">Другое</option>
             </select>
-            <input type="text" id="trans-desc" placeholder="Комментарий (напр. Пятерочка)">
+            <input type="text" id="trans-desc" placeholder="Комментарий">
             <input type="number" id="trans-amount" placeholder="Сумма">
         </div>
         <button class="add-btn" onclick="addTransaction()">Добавить операцию</button>
@@ -113,6 +116,9 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
+
+        // Берем имя из Telegram. Если имени нет (например, открыли в браузере) - пишем "Гость"
+        const userName = tg.initDataUnsafe?.user?.first_name || 'Гость';
 
         // --- НАСТРОЙКИ SUPABASE ---
         const supabaseUrl = 'https://uycdmmsocewesgppjswf.supabase.co';
@@ -144,8 +150,14 @@
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
                 checkbox.onchange = () => toggleTask(task.id, task.is_done);
+                
                 const span = document.createElement('span');
-                span.className = task.is_done ? 'done' : ''; span.textContent = task.title;
+                span.className = task.is_done ? 'done' : ''; 
+                
+                // Добавляем имя автора к задаче
+                const author = task.added_by ? `<span class="author-text"> • ${task.added_by}</span>` : '';
+                span.innerHTML = `${task.title} ${author}`;
+                
                 leftDiv.appendChild(checkbox); leftDiv.appendChild(span);
                 
                 const delBtn = document.createElement('button');
@@ -160,7 +172,8 @@
             const input = document.getElementById('task-input');
             const title = input.value.trim();
             if (!title) return; 
-            const { error } = await supabaseClient.from('tasks').insert([{ title: title, is_done: false }]);
+            // Отправляем имя автора (userName) в базу
+            const { error } = await supabaseClient.from('tasks').insert([{ title: title, is_done: false, added_by: userName }]);
             if (!error) { input.value = ''; loadTasks(); } else { alert('Ошибка: ' + error.message); }
         }
 
@@ -197,14 +210,14 @@
                 const colorClass = isIncome ? 'income-text' : 'expense-text';
                 const sign = isIncome ? '+' : '-';
 
-                // Если категория есть (для старых записей может быть null), показываем её
                 const cat = t.category ? `<span class="category-badge">${t.category}</span>` : '';
+                // Добавляем имя автора к транзакции
+                const author = t.added_by ? `<span class="author-text"> • ${t.added_by}</span>` : '';
 
-                // Левая часть: категория, описание и сумма
                 const infoDiv = document.createElement('div');
                 infoDiv.innerHTML = `
                     <div style="font-weight:bold; margin-bottom: 4px;">
-                        ${cat} ${t.description}
+                        ${cat} ${t.description} ${author}
                     </div>
                     <div class="${colorClass}">${sign}${amount} ₽</div>
                 `;
@@ -232,7 +245,7 @@
 
         async function addTransaction() {
             const type = document.getElementById('trans-type').value;
-            const category = document.getElementById('trans-category').value; // Берем категорию
+            const category = document.getElementById('trans-category').value;
             const description = document.getElementById('trans-desc').value.trim();
             const amount = parseFloat(document.getElementById('trans-amount').value);
 
@@ -245,7 +258,8 @@
                 description: description, 
                 amount: amount,
                 type: type,
-                category: category // Отправляем категорию в базу
+                category: category,
+                added_by: userName // Отправляем имя автора
             }]);
             
             if (!error) { 
