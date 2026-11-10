@@ -16,7 +16,7 @@
             margin: 0; padding: 12px; width: 100vw; overflow-x: hidden;
         }
         
-        /* Вкладки */
+        /* Главные вкладки */
         .tabs { display: flex; gap: 6px; margin-bottom: 16px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 4px; border-radius: var(--radius); }
         .tab-btn { flex: 1; padding: 10px 4px; border-radius: 8px; border: none; background: transparent; color: var(--tg-theme-text-color, #000); font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .tab-btn.active { background-color: var(--tg-theme-button-color, #2481cc); color: #fff; box-shadow: var(--shadow); }
@@ -87,6 +87,12 @@
 
     <!-- ДОМАШНИЙ МЕНЕДЖЕР -->
     <div id="tasks-view">
+        <!-- Переключатель краткосрочных/долгосрочных дел -->
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" id="sub-tab-short" onclick="switchTaskTab('Краткосрочные')">Краткосрочные</button>
+            <button class="sub-tab-btn" id="sub-tab-long" onclick="switchTaskTab('Долгосрочные')">Долгосрочные</button>
+        </div>
+
         <div class="add-form">
             <input type="text" id="task-input" placeholder="Название задачи...">
             <div class="form-row">
@@ -155,11 +161,8 @@
 
         <div class="add-form" style="flex-direction: row; align-items: center; flex-wrap: nowrap;">
             <input type="text" id="shop-input" placeholder="Что купить?" style="flex: 1; min-width: 80px;">
-            
-            <!-- Два поля для цены (скрыты по умолчанию) -->
             <input type="number" id="shop-price-min" placeholder="От" class="shop-price-input" style="display: none;">
             <input type="number" id="shop-price-max" placeholder="До" class="shop-price-input" style="display: none;">
-            
             <button class="add-btn" style="width: auto; padding: 10px 15px; flex-shrink: 0;" onclick="addShoppingItem()">+</button>
         </div>
         
@@ -180,7 +183,10 @@
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         const catEmojis = { 'Продукты': '🍔', 'Жилье': '🏠', 'Транспорт': '🚗', 'Развлечения': '🎉', 'Здоровье': '💊', 'Другое': '📦', 'Уборка': '🧹', 'Работа': '💼', 'Хобби': '🎨' };
+        
+        // Текущие состояния вкладок
         let currentShopList = 'Ежедневные';
+        let currentTaskList = 'Краткосрочные';
 
         function switchTab(tabName) {
             document.getElementById('tasks-view').style.display = 'none';
@@ -195,14 +201,50 @@
         }
 
         // --- ДОМАШНИЙ МЕНЕДЖЕР ---
+        
+        // Переключение вкладок задач
+        function switchTaskTab(type) {
+            currentTaskList = type;
+            document.getElementById('sub-tab-short').classList.remove('active');
+            document.getElementById('sub-tab-long').classList.remove('active');
+            if (type === 'Краткосрочные') document.getElementById('sub-tab-short').classList.add('active');
+            else document.getElementById('sub-tab-long').classList.add('active');
+            loadTasks();
+        }
+
+        // Функция автоудаления старых выполненных задач
+        async function cleanupOldTasks() {
+            // Вычисляем дату 7 дней назад
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const dateString = sevenDaysAgo.toISOString();
+
+            // Удаляем задачи, которые выполнены и дата выполнения старше 7 дней
+            await supabaseClient
+                .from('tasks')
+                .delete()
+                .eq('is_done', true)
+                .lt('completed_at', dateString);
+        }
+
         async function loadTasks() {
+            // Перед загрузкой чистим старые задачи
+            await cleanupOldTasks();
+
             const { data: tasks, error } = await supabaseClient.from('tasks').select('*').order('due_date', { ascending: true, nullsFirst: false });
             const list = document.getElementById('task-list');
             list.innerHTML = ''; 
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
-            if (tasks.length === 0) { list.innerHTML = `<li class="empty-state">Задач пока нет.</li>`; return; }
             
-            tasks.forEach(task => {
+            // Фильтруем задачи по выбранной под-вкладке (Краткосрочные/Долгосрочные)
+            const filteredTasks = tasks.filter(task => (task.task_type || 'Краткосрочные') === currentTaskList);
+
+            if (filteredTasks.length === 0) { 
+                list.innerHTML = `<li class="empty-state">В этом списке пока нет задач.</li>`; 
+                return; 
+            }
+            
+            filteredTasks.forEach(task => {
                 const li = document.createElement('li'); li.className = 'task-item';
                 const leftDiv = document.createElement('div'); leftDiv.className = 'task-left';
                 const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
@@ -220,16 +262,20 @@
                     <div class="task-title ${task.is_done ? 'done' : ''}">${task.title}</div>
                     <div class="task-meta">${cat} ${prio} ${date} ${assignee} ${freq} ${time}</div>`;
                 leftDiv.appendChild(checkbox); leftDiv.appendChild(contentDiv);
+                
                 const delBtn = document.createElement('button'); delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTask(task.id);
+                
                 li.appendChild(leftDiv); li.appendChild(delBtn); list.appendChild(li);
             });
         }
+
         async function addTask() {
             const title = document.getElementById('task-input').value.trim();
             if (!title) return; 
             const { error } = await supabaseClient.from('tasks').insert([{ 
                 title, is_done: false, added_by: userName,
+                task_type: currentTaskList, // Сохраняем тип текущей вкладки
                 category: document.getElementById('task-category').value, priority: document.getElementById('task-priority').value, 
                 due_date: document.getElementById('task-date').value || null, assignee: document.getElementById('task-assignee').value || null,
                 frequency: document.getElementById('task-frequency').value, time_estimate: document.getElementById('task-time').value || null
@@ -239,7 +285,18 @@
                 loadTasks(); 
             } 
         }
-        async function toggleTask(id, currentStatus) { await supabaseClient.from('tasks').update({ is_done: !currentStatus }).eq('id', id); loadTasks(); }
+
+        async function toggleTask(id, currentStatus) {
+            const updates = { is_done: !currentStatus };
+            
+            // Если задачу отмечают выполненной - записываем время, если снимают галочку - стираем
+            if (!currentStatus) updates.completed_at = new Date().toISOString();
+            else updates.completed_at = null;
+
+            await supabaseClient.from('tasks').update(updates).eq('id', id); 
+            loadTasks(); 
+        }
+        
         async function deleteTask(id) { await supabaseClient.from('tasks').delete().eq('id', id); loadTasks(); }
 
         // --- БЮДЖЕТ ---
@@ -317,8 +374,7 @@
                 return; 
             }
 
-            let totalMin = 0;
-            let totalMax = 0;
+            let totalMin = 0; let totalMax = 0;
 
             filteredItems.forEach(item => {
                 const li = document.createElement('li');
@@ -329,13 +385,10 @@
                     const pMin = item.estimated_price ? Number(item.estimated_price) : 0;
                     const pMax = item.price_max ? Number(item.price_max) : pMin;
 
-                    if (pMax > pMin) {
-                        priceHtml = `<span class="shop-item-price">${pMin} - ${pMax} ₽</span>`;
-                    } else {
-                        priceHtml = `<span class="shop-item-price">${pMin} ₽</span>`;
-                    }
-                    totalMin += pMin;
-                    totalMax += pMax;
+                    if (pMax > pMin) priceHtml = `<span class="shop-item-price">${pMin} - ${pMax} ₽</span>`;
+                    else priceHtml = `<span class="shop-item-price">${pMin} ₽</span>`;
+                    
+                    totalMin += pMin; totalMax += pMax;
                 }
 
                 li.innerHTML = `
@@ -346,20 +399,16 @@
                     <div style="display:flex; align-items:center;">
                         ${priceHtml}
                         <button class="delete-btn" onclick="deleteShoppingItem('${item.id}')">✖</button>
-                    </div>
-                `;
+                    </div>`;
                 list.appendChild(li);
             });
 
             if (currentShopList === 'Крупные') {
                 const totalEl = document.getElementById('shop-total');
                 if (totalMax > totalMin) {
-                    // Считаем среднее и округляем
                     const average = Math.round((totalMin + totalMax) / 2);
                     totalEl.textContent = `≈ ${average} ₽`; 
-                } else {
-                    totalEl.textContent = `${totalMin} ₽`;
-                }
+                } else totalEl.textContent = `${totalMin} ₽`;
             }
         }
 
@@ -375,18 +424,17 @@
 
             await supabaseClient.from('shopping_list').insert([{ 
                 title: title, is_bought: false, list_type: currentShopList,
-                estimated_price: priceMin, // Сохраняем минимальную
-                price_max: priceMax        // Сохраняем максимальную
+                estimated_price: priceMin, price_max: priceMax
             }]);
             
             document.getElementById('shop-input').value = ''; 
-            priceMinInput.value = ''; priceMaxInput.value = '';
-            
+            priceMinInput.value = ''; priceMaxInput.value = ''; 
             loadShoppingList();
         }
         async function toggleShoppingItem(id, currentStatus) { await supabaseClient.from('shopping_list').update({ is_bought: !currentStatus }).eq('id', id); loadShoppingList(); }
         async function deleteShoppingItem(id) { await supabaseClient.from('shopping_list').delete().eq('id', id); loadShoppingList(); }
 
+        // Запускаем всё
         loadTasks();
         loadTransactions();
         loadShoppingList();
