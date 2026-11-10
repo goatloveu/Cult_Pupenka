@@ -45,7 +45,10 @@
         .task-left { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
         .done { text-decoration: line-through; opacity: 0.6; }
         input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #ff4d4d; }
+        
+        /* Кнопка удаления (крестик) */
+        .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #ff4d4d; opacity: 0.8; }
+        .delete-btn:hover { opacity: 1; }
         
         /* Стили для бюджета */
         .budget-summary { 
@@ -56,6 +59,8 @@
         .budget-summary span { font-size: 18px; font-weight: bold; margin-top: 5px; }
         .income-text { color: #2ecc71; }
         .expense-text { color: #ff4d4d; }
+        
+        .trans-right { display: flex; align-items: center; gap: 10px; }
     </style>
 </head>
 <body>
@@ -73,14 +78,12 @@
     </div>
 
     <div id="budget-view" style="display: none;">
-        <!-- Блок с итогами -->
         <div class="budget-summary">
             <div>Доходы<br><span id="total-income" class="income-text">0</span> ₽</div>
             <div>Расходы<br><span id="total-expense" class="expense-text">0</span> ₽</div>
             <div>Баланс<br><span id="total-balance">0</span> ₽</div>
         </div>
 
-        <!-- Форма добавления -->
         <div class="add-form">
             <select id="trans-type">
                 <option value="expense">Расход</option>
@@ -158,7 +161,7 @@
             loadTasks();
         }
 
-        // --- БЮДЖЕТ (ДОХОДЫ И РАСХОДЫ) ---
+        // --- БЮДЖЕТ ---
         async function loadTransactions() {
             const { data: trans, error } = await supabaseClient.from('transactions').select('*').order('created_at', { ascending: false });
             const list = document.getElementById('transaction-list');
@@ -174,28 +177,40 @@
                 const isIncome = t.type === 'income';
                 const amount = Number(t.amount);
                 
-                // Считаем итоги
                 if (isIncome) totalIncome += amount;
                 else totalExpense += amount;
 
                 const li = document.createElement('li');
                 
-                // Красим в зеленый (доход) или красный (расход)
                 const colorClass = isIncome ? 'income-text' : 'expense-text';
                 const sign = isIncome ? '+' : '-';
 
-                li.innerHTML = `
-                    <div><span style="font-weight:bold;">${t.description}</span></div>
+                // Левая часть: описание и сумма
+                const infoDiv = document.createElement('div');
+                infoDiv.innerHTML = `
+                    <div style="font-weight:bold;">${t.description}</div>
                     <div class="${colorClass}">${sign}${amount} ₽</div>
                 `;
+
+                // Правая часть: кнопка удаления
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'trans-right';
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn'; 
+                delBtn.innerHTML = '✖';
+                delBtn.onclick = () => deleteTransaction(t.id);
+
+                rightDiv.appendChild(delBtn);
+
+                li.appendChild(infoDiv);
+                li.appendChild(rightDiv);
                 list.appendChild(li);
             });
             
-            // Выводим итоги
             document.getElementById('total-income').textContent = totalIncome;
             document.getElementById('total-expense').textContent = totalExpense;
             
-            // Считаем баланс (если ушло в минус - будет красным)
             const balance = totalIncome - totalExpense;
             const balanceEl = document.getElementById('total-balance');
             balanceEl.textContent = balance;
@@ -208,7 +223,7 @@
             const descInput = document.getElementById('trans-desc');
             const amountInput = document.getElementById('trans-amount');
             
-            const type = typeInput.value; // 'income' или 'expense'
+            const type = typeInput.value;
             const description = descInput.value.trim();
             const amount = parseFloat(amountInput.value);
 
@@ -229,7 +244,12 @@
             } else { alert('Ошибка: ' + error.message); }
         }
 
-        // Загружаем всё при старте
+        // НОВАЯ ФУНКЦИЯ: Удаление операции из бюджета
+        async function deleteTransaction(id) {
+            const { error } = await supabaseClient.from('transactions').delete().eq('id', id);
+            if (!error) loadTransactions(); // Если удалилось - пересчитываем и обновляем
+        }
+
         loadTasks();
         loadTransactions();
     </script>
