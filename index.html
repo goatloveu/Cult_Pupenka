@@ -71,6 +71,11 @@
         
         .section-title { font-size: 16px; font-weight: bold; margin: 24px 0 12px 0; border-bottom: 2px solid var(--tg-theme-secondary-bg-color, #f1f1f1); padding-bottom: 8px; }
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; font-size: 14px; }
+        
+        /* Стили для покупок */
+        .shop-price-input { flex: 0 0 90px !important; min-width: 90px !important; }
+        .shop-total-box { text-align: right; font-size: 14px; font-weight: bold; margin-bottom: 12px; opacity: 0.8; }
+        .shop-item-price { color: #2ecc71; font-weight: bold; font-size: 14px; white-space: nowrap; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -142,17 +147,23 @@
         <ul id="transaction-list" style="margin-top: 10px;"><li class="empty-state">Загрузка...</li></ul>
     </div>
 
-    <!-- ПОКУПКИ (НОВАЯ ВКЛАДКА) -->
+    <!-- ПОКУПКИ -->
     <div id="shopping-view" style="display: none;">
-        <!-- Переключатель списков -->
         <div class="sub-tabs">
             <button class="sub-tab-btn active" id="sub-tab-daily" onclick="switchShopTab('Ежедневные')">Ежедневные</button>
             <button class="sub-tab-btn" id="sub-tab-longterm" onclick="switchShopTab('Крупные')">Крупные</button>
         </div>
 
-        <div class="add-form" style="flex-direction: row;">
+        <div class="add-form" style="flex-direction: row; align-items: center;">
             <input type="text" id="shop-input" placeholder="Что купить?">
+            <!-- Поле цены скрыто по умолчанию -->
+            <input type="number" id="shop-price" placeholder="Цена" class="shop-price-input" style="display: none;">
             <button class="add-btn" style="width: auto; padding: 10px 15px; flex-shrink: 0;" onclick="addShoppingItem()">+</button>
+        </div>
+        
+        <!-- Блок для вывода общей суммы (только для крупных) -->
+        <div id="shop-total-container" class="shop-total-box" style="display: none;">
+            Итого планируется: <span id="shop-total" style="color: #2ecc71;">0 ₽</span>
         </div>
         
         <ul id="shopping-list"><li class="empty-state">Загрузка...</li></ul>
@@ -168,8 +179,6 @@
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         const catEmojis = { 'Продукты': '🍔', 'Жилье': '🏠', 'Транспорт': '🚗', 'Развлечения': '🎉', 'Здоровье': '💊', 'Другое': '📦', 'Уборка': '🧹', 'Работа': '💼', 'Хобби': '🎨' };
-
-        // Переменная для хранения текущего выбранного списка покупок
         let currentShopList = 'Ежедневные';
 
         function switchTab(tabName) {
@@ -277,73 +286,101 @@
             const desc = document.getElementById('trans-desc').value.trim();
             const amount = parseFloat(document.getElementById('trans-amount').value);
             if (!desc || isNaN(amount) || amount <= 0) return;
-            await supabaseClient.from('transactions').insert([{ 
-                description: desc, amount, 
-                type: document.getElementById('trans-type').value, 
-                category: document.getElementById('trans-category').value, 
-                added_by: userName 
-            }]);
+            await supabaseClient.from('transactions').insert([{ description: desc, amount, type: document.getElementById('trans-type').value, category: document.getElementById('trans-category').value, added_by: userName }]);
             document.getElementById('trans-desc').value = ''; document.getElementById('trans-amount').value = ''; 
             loadTransactions();
         }
         async function deleteTransaction(id) { await supabaseClient.from('transactions').delete().eq('id', id); loadTransactions(); }
 
-        // --- ПОКУПКИ (НОВЫЙ РАЗДЕЛ) ---
+        // --- ПОКУПКИ ---
         function switchShopTab(listType) {
             currentShopList = listType;
             document.getElementById('sub-tab-daily').classList.remove('active');
             document.getElementById('sub-tab-longterm').classList.remove('active');
-            if (listType === 'Ежедневные') document.getElementById('sub-tab-daily').classList.add('active');
-            else document.getElementById('sub-tab-longterm').classList.add('active');
-            loadShoppingList(); // Перезагружаем список при переключении
+            
+            // Показываем/скрываем поле цены и блок с итогом
+            const priceInput = document.getElementById('shop-price');
+            const totalContainer = document.getElementById('shop-total-container');
+
+            if (listType === 'Ежедневные') {
+                document.getElementById('sub-tab-daily').classList.add('active');
+                priceInput.style.display = 'none';
+                priceInput.value = ''; // Очищаем при переключении
+                totalContainer.style.display = 'none';
+            } else {
+                document.getElementById('sub-tab-longterm').classList.add('active');
+                priceInput.style.display = 'block'; // Показываем поле ввода цены
+                totalContainer.style.display = 'block';
+            }
+            loadShoppingList(); 
         }
 
         async function loadShoppingList() {
-            // Загружаем все покупки
             const { data: items, error } = await supabaseClient.from('shopping_list').select('*').order('created_at', { ascending: true });
             const list = document.getElementById('shopping-list');
             list.innerHTML = '';
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
 
-            // Фильтруем по выбранному списку (Ежедневные или Крупные)
             const filteredItems = items.filter(item => (item.list_type || 'Ежедневные') === currentShopList);
 
             if (filteredItems.length === 0) { 
                 list.innerHTML = `<li class="empty-state">В этом списке пока пусто</li>`; 
+                if(currentShopList === 'Крупные') document.getElementById('shop-total').textContent = '0 ₽';
                 return; 
             }
+
+            let totalEstimate = 0;
 
             filteredItems.forEach(item => {
                 const li = document.createElement('li');
                 li.style.flexDirection = 'row'; li.style.alignItems = 'center'; li.style.justifyContent = 'space-between';
+                
+                // Если есть цена, выводим её
+                let priceHtml = '';
+                if (item.estimated_price) {
+                    priceHtml = `<span class="shop-item-price">${item.estimated_price} ₽</span>`;
+                    totalEstimate += Number(item.estimated_price); // Суммируем для итога
+                }
+
                 li.innerHTML = `
                     <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
                         <input type="checkbox" ${item.is_bought ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}', ${item.is_bought})">
                         <span class="${item.is_bought ? 'done' : ''}" style="font-size:15px;">${item.title}</span>
                     </div>
-                    <button class="delete-btn" onclick="deleteShoppingItem('${item.id}')">✖</button>
+                    <div style="display:flex; align-items:center;">
+                        ${priceHtml}
+                        <button class="delete-btn" onclick="deleteShoppingItem('${item.id}')">✖</button>
+                    </div>
                 `;
                 list.appendChild(li);
             });
+
+            // Обновляем итоговую сумму (только если мы на вкладке Крупные)
+            if (currentShopList === 'Крупные') {
+                document.getElementById('shop-total').textContent = `${totalEstimate} ₽`;
+            }
         }
 
         async function addShoppingItem() {
-            const input = document.getElementById('shop-input');
-            const title = input.value.trim();
+            const title = document.getElementById('shop-input').value.trim();
+            const priceInput = document.getElementById('shop-price');
+            const price = priceInput.style.display !== 'none' && priceInput.value ? parseFloat(priceInput.value) : null;
+            
             if (!title) return;
-            // Отправляем в базу текущий выбранный список (Ежедневные/Крупные)
+
             await supabaseClient.from('shopping_list').insert([{ 
-                title: title, 
-                is_bought: false, 
-                list_type: currentShopList 
+                title: title, is_bought: false, list_type: currentShopList,
+                estimated_price: price // Сохраняем цену
             }]);
-            input.value = ''; 
+            
+            document.getElementById('shop-input').value = ''; 
+            if (priceInput.style.display !== 'none') priceInput.value = ''; // Очищаем поле цены
+            
             loadShoppingList();
         }
         async function toggleShoppingItem(id, currentStatus) { await supabaseClient.from('shopping_list').update({ is_bought: !currentStatus }).eq('id', id); loadShoppingList(); }
         async function deleteShoppingItem(id) { await supabaseClient.from('shopping_list').delete().eq('id', id); loadShoppingList(); }
 
-        // Запуск при старте
         loadTasks();
         loadTransactions();
         loadShoppingList();
