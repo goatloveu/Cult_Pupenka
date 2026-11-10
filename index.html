@@ -21,7 +21,7 @@
         .tab-btn { flex: 1; padding: 10px 4px; border-radius: 8px; border: none; background: transparent; color: var(--tg-theme-text-color, #000); font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .tab-btn.active { background-color: var(--tg-theme-button-color, #2481cc); color: #fff; box-shadow: var(--shadow); }
 
-        /* Под-вкладки для покупок */
+        /* Под-вкладки */
         .sub-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
         .sub-tab-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); background: transparent; color: var(--tg-theme-text-color, #000); font-size: 14px; cursor: pointer; }
         .sub-tab-btn.active { border-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-color, #2481cc); font-weight: bold; }
@@ -69,11 +69,10 @@
         .income-text { color: #2ecc71; }
         .expense-text { color: #ff4d4d; }
         
-        .section-title { font-size: 16px; font-weight: bold; margin: 24px 0 12px 0; border-bottom: 2px solid var(--tg-theme-secondary-bg-color, #f1f1f1); padding-bottom: 8px; }
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; font-size: 14px; }
         
         /* Стили для покупок */
-        .shop-price-input { flex: 0 0 90px !important; min-width: 90px !important; }
+        .shop-price-input { flex: 0 1 70px !important; min-width: 60px !important; text-align: center; }
         .shop-total-box { text-align: right; font-size: 14px; font-weight: bold; margin-bottom: 12px; opacity: 0.8; }
         .shop-item-price { color: #2ecc71; font-weight: bold; font-size: 14px; white-space: nowrap; margin-left: 10px; }
     </style>
@@ -154,14 +153,16 @@
             <button class="sub-tab-btn" id="sub-tab-longterm" onclick="switchShopTab('Крупные')">Крупные</button>
         </div>
 
-        <div class="add-form" style="flex-direction: row; align-items: center;">
-            <input type="text" id="shop-input" placeholder="Что купить?">
-            <!-- Поле цены скрыто по умолчанию -->
-            <input type="number" id="shop-price" placeholder="Цена" class="shop-price-input" style="display: none;">
+        <div class="add-form" style="flex-direction: row; align-items: center; flex-wrap: nowrap;">
+            <input type="text" id="shop-input" placeholder="Что купить?" style="flex: 1; min-width: 80px;">
+            
+            <!-- Два поля для цены (скрыты по умолчанию) -->
+            <input type="number" id="shop-price-min" placeholder="От" class="shop-price-input" style="display: none;">
+            <input type="number" id="shop-price-max" placeholder="До" class="shop-price-input" style="display: none;">
+            
             <button class="add-btn" style="width: auto; padding: 10px 15px; flex-shrink: 0;" onclick="addShoppingItem()">+</button>
         </div>
         
-        <!-- Блок для вывода общей суммы (только для крупных) -->
         <div id="shop-total-container" class="shop-total-box" style="display: none;">
             Итого планируется: <span id="shop-total" style="color: #2ecc71;">0 ₽</span>
         </div>
@@ -202,11 +203,9 @@
             if (tasks.length === 0) { list.innerHTML = `<li class="empty-state">Задач пока нет.</li>`; return; }
             
             tasks.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item';
+                const li = document.createElement('li'); li.className = 'task-item';
                 const leftDiv = document.createElement('div'); leftDiv.className = 'task-left';
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
+                const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
                 checkbox.onchange = () => toggleTask(task.id, task.is_done);
                 
                 const contentDiv = document.createElement('div'); contentDiv.className = 'task-content';
@@ -219,32 +218,24 @@
 
                 contentDiv.innerHTML = `
                     <div class="task-title ${task.is_done ? 'done' : ''}">${task.title}</div>
-                    <div class="task-meta">${cat} ${prio} ${date} ${assignee} ${freq} ${time}</div>
-                `;
+                    <div class="task-meta">${cat} ${prio} ${date} ${assignee} ${freq} ${time}</div>`;
                 leftDiv.appendChild(checkbox); leftDiv.appendChild(contentDiv);
-                const delBtn = document.createElement('button');
-                delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
+                const delBtn = document.createElement('button'); delBtn.className = 'delete-btn'; delBtn.innerHTML = '✖';
                 delBtn.onclick = () => deleteTask(task.id);
                 li.appendChild(leftDiv); li.appendChild(delBtn); list.appendChild(li);
             });
         }
-
         async function addTask() {
             const title = document.getElementById('task-input').value.trim();
             if (!title) return; 
             const { error } = await supabaseClient.from('tasks').insert([{ 
                 title, is_done: false, added_by: userName,
-                category: document.getElementById('task-category').value, 
-                priority: document.getElementById('task-priority').value, 
-                due_date: document.getElementById('task-date').value || null, 
-                assignee: document.getElementById('task-assignee').value || null,
-                frequency: document.getElementById('task-frequency').value, 
-                time_estimate: document.getElementById('task-time').value || null
+                category: document.getElementById('task-category').value, priority: document.getElementById('task-priority').value, 
+                due_date: document.getElementById('task-date').value || null, assignee: document.getElementById('task-assignee').value || null,
+                frequency: document.getElementById('task-frequency').value, time_estimate: document.getElementById('task-time').value || null
             }]);
             if (!error) { 
-                document.getElementById('task-input').value = ''; 
-                document.getElementById('task-date').value = '';
-                document.getElementById('task-time').value = ''; 
+                document.getElementById('task-input').value = ''; document.getElementById('task-date').value = ''; document.getElementById('task-time').value = ''; 
                 loadTasks(); 
             } 
         }
@@ -254,8 +245,7 @@
         // --- БЮДЖЕТ ---
         async function loadTransactions() {
             const { data: trans, error } = await supabaseClient.from('transactions').select('*').order('created_at', { ascending: false });
-            const list = document.getElementById('transaction-list');
-            list.innerHTML = ''; 
+            const list = document.getElementById('transaction-list'); list.innerHTML = ''; 
             let totalIncome = 0; let totalExpense = 0;
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
             if (trans.length === 0) { list.innerHTML = `<li class="empty-state">Операций пока нет.</li>`; return; }
@@ -287,8 +277,7 @@
             const amount = parseFloat(document.getElementById('trans-amount').value);
             if (!desc || isNaN(amount) || amount <= 0) return;
             await supabaseClient.from('transactions').insert([{ description: desc, amount, type: document.getElementById('trans-type').value, category: document.getElementById('trans-category').value, added_by: userName }]);
-            document.getElementById('trans-desc').value = ''; document.getElementById('trans-amount').value = ''; 
-            loadTransactions();
+            document.getElementById('trans-desc').value = ''; document.getElementById('trans-amount').value = ''; loadTransactions();
         }
         async function deleteTransaction(id) { await supabaseClient.from('transactions').delete().eq('id', id); loadTransactions(); }
 
@@ -298,18 +287,18 @@
             document.getElementById('sub-tab-daily').classList.remove('active');
             document.getElementById('sub-tab-longterm').classList.remove('active');
             
-            // Показываем/скрываем поле цены и блок с итогом
-            const priceInput = document.getElementById('shop-price');
+            const priceMin = document.getElementById('shop-price-min');
+            const priceMax = document.getElementById('shop-price-max');
             const totalContainer = document.getElementById('shop-total-container');
 
             if (listType === 'Ежедневные') {
                 document.getElementById('sub-tab-daily').classList.add('active');
-                priceInput.style.display = 'none';
-                priceInput.value = ''; // Очищаем при переключении
+                priceMin.style.display = 'none'; priceMax.style.display = 'none';
+                priceMin.value = ''; priceMax.value = '';
                 totalContainer.style.display = 'none';
             } else {
                 document.getElementById('sub-tab-longterm').classList.add('active');
-                priceInput.style.display = 'block'; // Показываем поле ввода цены
+                priceMin.style.display = 'block'; priceMax.style.display = 'block';
                 totalContainer.style.display = 'block';
             }
             loadShoppingList(); 
@@ -317,8 +306,7 @@
 
         async function loadShoppingList() {
             const { data: items, error } = await supabaseClient.from('shopping_list').select('*').order('created_at', { ascending: true });
-            const list = document.getElementById('shopping-list');
-            list.innerHTML = '';
+            const list = document.getElementById('shopping-list'); list.innerHTML = '';
             if (error) { list.innerHTML = `<li>Ошибка: ${error.message}</li>`; return; }
 
             const filteredItems = items.filter(item => (item.list_type || 'Ежедневные') === currentShopList);
@@ -329,17 +317,25 @@
                 return; 
             }
 
-            let totalEstimate = 0;
+            let totalMin = 0;
+            let totalMax = 0;
 
             filteredItems.forEach(item => {
                 const li = document.createElement('li');
                 li.style.flexDirection = 'row'; li.style.alignItems = 'center'; li.style.justifyContent = 'space-between';
                 
-                // Если есть цена, выводим её
                 let priceHtml = '';
-                if (item.estimated_price) {
-                    priceHtml = `<span class="shop-item-price">${item.estimated_price} ₽</span>`;
-                    totalEstimate += Number(item.estimated_price); // Суммируем для итога
+                if (item.estimated_price || item.price_max) {
+                    const pMin = item.estimated_price ? Number(item.estimated_price) : 0;
+                    const pMax = item.price_max ? Number(item.price_max) : pMin;
+
+                    if (pMax > pMin) {
+                        priceHtml = `<span class="shop-item-price">${pMin} - ${pMax} ₽</span>`;
+                    } else {
+                        priceHtml = `<span class="shop-item-price">${pMin} ₽</span>`;
+                    }
+                    totalMin += pMin;
+                    totalMax += pMax;
                 }
 
                 li.innerHTML = `
@@ -355,26 +351,34 @@
                 list.appendChild(li);
             });
 
-            // Обновляем итоговую сумму (только если мы на вкладке Крупные)
             if (currentShopList === 'Крупные') {
-                document.getElementById('shop-total').textContent = `${totalEstimate} ₽`;
+                const totalEl = document.getElementById('shop-total');
+                if (totalMax > totalMin) {
+                    totalEl.textContent = `${totalMin} - ${totalMax} ₽`;
+                } else {
+                    totalEl.textContent = `${totalMin} ₽`;
+                }
             }
         }
 
         async function addShoppingItem() {
             const title = document.getElementById('shop-input').value.trim();
-            const priceInput = document.getElementById('shop-price');
-            const price = priceInput.style.display !== 'none' && priceInput.value ? parseFloat(priceInput.value) : null;
+            const priceMinInput = document.getElementById('shop-price-min');
+            const priceMaxInput = document.getElementById('shop-price-max');
+            
+            const priceMin = priceMinInput.style.display !== 'none' && priceMinInput.value ? parseFloat(priceMinInput.value) : null;
+            const priceMax = priceMaxInput.style.display !== 'none' && priceMaxInput.value ? parseFloat(priceMaxInput.value) : null;
             
             if (!title) return;
 
             await supabaseClient.from('shopping_list').insert([{ 
                 title: title, is_bought: false, list_type: currentShopList,
-                estimated_price: price // Сохраняем цену
+                estimated_price: priceMin, // Сохраняем минимальную
+                price_max: priceMax        // Сохраняем максимальную
             }]);
             
             document.getElementById('shop-input').value = ''; 
-            if (priceInput.style.display !== 'none') priceInput.value = ''; // Очищаем поле цены
+            priceMinInput.value = ''; priceMaxInput.value = '';
             
             loadShoppingList();
         }
