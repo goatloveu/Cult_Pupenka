@@ -354,7 +354,9 @@
             if (currentShopList === 'Крупные') {
                 const totalEl = document.getElementById('shop-total');
                 if (totalMax > totalMin) {
-                    totalEl.textContent = `${totalMin} - ${totalMax} ₽`;
+                    // Считаем среднее и округляем
+                    const average = Math.round((totalMin + totalMax) / 2);
+                    totalEl.textContent = `≈ ${average} ₽`; 
                 } else {
                     totalEl.textContent = `${totalMin} ₽`;
                 }
