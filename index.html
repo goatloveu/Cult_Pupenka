@@ -2,59 +2,77 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Наш Быт</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --radius: 12px; --shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        :root { --radius: 12px; --shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        
+        /* Сброс стилей для всех элементов */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000);
-            margin: 0; padding: 16px; box-sizing: border-box;
+            background-color: var(--tg-theme-bg-color, #ffffff); 
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0; padding: 12px; 
+            width: 100vw; overflow-x: hidden; /* Запрещаем горизонтальную прокрутку */
         }
         
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 4px; border-radius: var(--radius); }
+        /* Вкладки */
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 4px; border-radius: var(--radius); }
         .tab-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; color: var(--tg-theme-text-color, #000); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .tab-btn.active { background-color: var(--tg-theme-button-color, #2481cc); color: #fff; box-shadow: var(--shadow); }
 
         /* Формы */
-        .add-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 12px; border-radius: var(--radius); }
-        .form-row { display: flex; gap: 8px; }
+        .add-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 12px; border-radius: var(--radius); width: 100%; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; } /* flex-wrap позволяет переносить элементы */
+        .form-row > * { flex: 1 1 120px; min-width: 0; } /* Элементы занимают минимум 120px, иначе переносятся */
+        
         input, select {
-            padding: 10px; border-radius: 8px; border: 1px solid var(--tg-theme-hint-color, #ccc); font-size: 14px;
-            box-sizing: border-box; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); outline: none; flex: 1;
+            padding: 10px; border-radius: 8px; border: 1px solid var(--tg-theme-hint-color, #ccc); 
+            font-size: 14px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); 
+            outline: none; width: 100%; /* Всегда занимает всю ширину контейнера */
         }
         button.add-btn { padding: 12px; border-radius: 8px; border: none; background-color: var(--tg-theme-button-color, #2481cc); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
         
-        /* Списки задач */
-        ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-        li { padding: 14px; background-color: var(--tg-theme-bg-color, #fff); border-radius: var(--radius); display: flex; align-items: flex-start; justify-content: space-between; box-shadow: var(--shadow); border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); }
+        /* Списки */
+        ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        li { 
+            padding: 12px; background-color: var(--tg-theme-bg-color, #fff); border-radius: var(--radius); 
+            display: flex; flex-direction: column; gap: 8px; 
+            box-shadow: var(--shadow); border: 1px solid var(--tg-theme-secondary-bg-color, #f1f1f1); 
+            width: 100%; word-break: break-word; /* Текст переносится, если длинный */
+        }
         
-        .task-left { display: flex; align-items: flex-start; gap: 12px; flex-grow: 1; }
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin-top: 2px; }
+        /* Задачи */
+        .task-item { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+        .task-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+        .task-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+        .task-title { font-weight: 600; font-size: 15px; }
+        .task-meta { font-size: 11px; opacity: 0.8; display: flex; gap: 6px; flex-wrap: wrap; }
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; margin-top: 2px; flex-shrink: 0; }
         .done { text-decoration: line-through; opacity: 0.5; }
         
-        .task-content { display: flex; flex-direction: column; gap: 4px; }
-        .task-title { font-weight: 600; font-size: 15px; }
-        .task-meta { font-size: 11px; opacity: 0.7; display: flex; gap: 6px; flex-wrap: wrap; }
-        .badge { background: var(--tg-theme-secondary-bg-color, #e0e0e0); padding: 2px 6px; border-radius: 4px; }
+        /* Транзакции (Бюджет) */
+        .trans-info { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .trans-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }
+        .trans-bottom { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px; }
+        .trans-amount { font-weight: bold; font-size: 15px; }
         
-        .delete-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #ff4d4d; opacity: 0.5; padding: 0 4px; }
+        /* Кнопка удаления */
+        .delete-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #ff4d4d; opacity: 0.6; padding: 4px; flex-shrink: 0; }
         
-        /* Бюджет */
-        .budget-summary { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
-        .budget-card { flex: 1; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 12px; border-radius: var(--radius); text-align: center; display: flex; flex-direction: column; }
-        .budget-card-title { font-size: 11px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
-        .budget-card-value { font-size: 16px; font-weight: 800; }
+        /* Карточки бюджета */
+        .budget-summary { display: flex; gap: 8px; margin-bottom: 16px; width: 100%; }
+        .budget-card { flex: 1; min-width: 0; background: var(--tg-theme-secondary-bg-color, #f1f1f1); padding: 10px 4px; border-radius: var(--radius); text-align: center; display: flex; flex-direction: column; }
+        .budget-card-title { font-size: 10px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .budget-card-value { font-size: 15px; font-weight: 800; word-break: break-all; }
         .income-text { color: #2ecc71; }
         .expense-text { color: #ff4d4d; }
         
-        .trans-info { display: flex; flex-direction: column; gap: 4px; }
-        .trans-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-        .trans-amount { font-weight: bold; font-size: 15px; }
-        
-        .section-title { font-size: 18px; font-weight: bold; margin: 24px 0 12px 0; border-bottom: 2px solid var(--tg-theme-secondary-bg-color, #f1f1f1); padding-bottom: 8px; }
+        .section-title { font-size: 16px; font-weight: bold; margin: 24px 0 12px 0; border-bottom: 2px solid var(--tg-theme-secondary-bg-color, #f1f1f1); padding-bottom: 8px; }
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; font-size: 14px; }
     </style>
 </head>
@@ -64,7 +82,7 @@
         <button class="tab-btn" id="tab-budget" onclick="switchTab('budget')">💰 Бюджет</button>
     </div>
 
-    <!-- ВКЛАДКА: ДОМАШНИЙ МЕНЕДЖЕР -->
+    <!-- ДОМАШНИЙ МЕНЕДЖЕР -->
     <div id="tasks-view">
         <div class="add-form">
             <input type="text" id="task-input" placeholder="Название задачи...">
@@ -96,7 +114,7 @@
         <ul id="task-list"><li class="empty-state">Загрузка...</li></ul>
     </div>
 
-    <!-- ВКЛАДКА: БЮДЖЕТ -->
+    <!-- БЮДЖЕТ -->
     <div id="budget-view" style="display: none;">
         <div class="budget-summary">
             <div class="budget-card"><span class="budget-card-title">Доходы</span><span id="total-income" class="budget-card-value income-text">0 ₽</span></div>
@@ -121,11 +139,10 @@
         </div>
         <ul id="transaction-list" style="margin-top: 10px;"><li class="empty-state">Загрузка...</li></ul>
 
-        <!-- СПИСОК ПОКУПОК -->
         <div class="section-title">🛒 Планируемые покупки</div>
         <div class="add-form" style="flex-direction: row;">
-            <input type="text" id="shop-input" placeholder="Что купить? (напр. Хлеб)">
-            <button class="add-btn" style="width: auto; padding: 10px 15px;" onclick="addShoppingItem()">+</button>
+            <input type="text" id="shop-input" placeholder="Что купить?">
+            <button class="add-btn" style="width: auto; padding: 10px 15px; flex-shrink: 0;" onclick="addShoppingItem()">+</button>
         </div>
         <ul id="shopping-list"><li class="empty-state">Список пуст</li></ul>
     </div>
@@ -160,6 +177,8 @@
             
             tasks.forEach(task => {
                 const li = document.createElement('li');
+                li.className = 'task-item'; // Применяем класс для адаптивности
+                
                 const leftDiv = document.createElement('div'); leftDiv.className = 'task-left';
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox'; checkbox.checked = task.is_done;
@@ -167,7 +186,6 @@
                 
                 const contentDiv = document.createElement('div'); contentDiv.className = 'task-content';
                 
-                // Собираем мета-информацию (категория, приоритет, дата, исполнитель)
                 const cat = task.category ? `<span class="badge">${catEmojis[task.category] || ''} ${task.category}</span>` : '';
                 const prio = task.priority && task.priority !== 'Обычная' ? `<span class="badge" style="color:${task.priority==='Срочная'?'#ff4d4d':'#f39c12'}">${task.priority}</span>` : '';
                 const date = task.due_date ? `<span class="badge">📅 ${new Date(task.due_date).toLocaleDateString('ru-RU')}</span>` : '';
@@ -191,7 +209,6 @@
         async function addTask() {
             const title = document.getElementById('task-input').value.trim();
             if (!title) return; 
-            
             const category = document.getElementById('task-category').value;
             const priority = document.getElementById('task-priority').value;
             const due_date = document.getElementById('task-date').value || null;
@@ -218,7 +235,7 @@
             loadTasks();
         }
 
-        // --- БЮДЖЕТ (ТРАНЗАКЦИИ) ---
+        // --- БЮДЖЕТ ---
         async function loadTransactions() {
             const { data: trans, error } = await supabaseClient.from('transactions').select('*').order('created_at', { ascending: false });
             const list = document.getElementById('transaction-list');
@@ -237,12 +254,13 @@
                 const sign = isIncome ? '+' : '-';
                 const emoji = catEmojis[t.category] || '📦';
 
+                // Измененная структура HTML для транзакций (для мобилок)
                 li.innerHTML = `
                     <div class="trans-info">
                         <div class="trans-title"><span class="category-badge">${emoji} ${t.category}</span> <span style="font-size:11px; opacity:0.6;">${t.added_by}</span></div>
-                        <div style="font-size:13px;">${t.description}</div>
+                        <div style="font-size:13px; opacity:0.9;">${t.description}</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="trans-bottom">
                         <div class="trans-amount ${colorClass}">${sign}${amount} ₽</div>
                         <button class="delete-btn" onclick="deleteTransaction('${t.id}')">✖</button>
                     </div>
@@ -281,8 +299,13 @@
 
             items.forEach(item => {
                 const li = document.createElement('li');
+                // Для списка покупок делаем строку (flex-direction: row), чтобы галочка и текст были в одну линию
+                li.style.flexDirection = 'row';
+                li.style.alignItems = 'center';
+                li.style.justifyContent = 'space-between';
+                
                 li.innerHTML = `
-                    <div class="task-left">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
                         <input type="checkbox" ${item.is_bought ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}', ${item.is_bought})">
                         <span class="${item.is_bought ? 'done' : ''}" style="font-size:15px;">${item.title}</span>
                     </div>
@@ -306,7 +329,6 @@
             await supabaseClient.from('shopping_list').delete().eq('id', id); loadShoppingList();
         }
 
-        // Запуск
         loadTasks();
         loadTransactions();
         loadShoppingList();
